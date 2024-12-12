@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates  # Import for date formatting
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 # Database connection
@@ -67,6 +68,7 @@ filtered_sales = monthly_sales[(monthly_sales['order_date'] >= start_date) & (mo
 # Show data summary
 if st.sidebar.checkbox("Show Data Summary"):
     st.subheader("Sales Data Summary")
+    st.write("This summary table provides a statistical overview of the filtered sales data, including metrics such as mean, median, standard deviation, and percentiles.")
     st.write(filtered_sales.describe())
 
 # Monthly Sales Trend
@@ -76,6 +78,12 @@ ax.plot(filtered_sales['order_date'], filtered_sales['sales'], label="Monthly Sa
 ax.set_xlabel("Date")
 ax.set_ylabel("Sales")
 ax.set_title("Monthly Sales Trend")
+st.write("This plot shows the trend of monthly sales over the selected date range. It helps in identifying patterns, seasonality, and any anomalies in the sales data.")
+
+# Apply improved date formatting for better readability
+ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %Y'))  # Format as "Month Year"
+ax.xaxis.set_major_locator(mdates.MonthLocator(interval=3))  # Show every 3rd month
+plt.xticks(rotation=45)  # Rotate labels for clarity
 st.pyplot(fig)
 
 # Forecasting
@@ -86,9 +94,11 @@ if st.sidebar.checkbox("Show Sales Forecasting"):
     
     # Display metrics
     st.subheader("Sales Forecasting")
-    st.write(f"Mean Absolute Error: {mae:.2f}")
-    st.write(f"Root Mean Squared Error: {rmse:.2f}")
-    
+    st.write(f"Mean Absolute Error (MAE): {mae:.2f}")
+    st.write(f"Root Mean Squared Error (RMSE): {rmse:.2f}")
+    st.write("MAE and RMSE are common metrics used to evaluate the accuracy of the forecasting model. Lower values indicate a better fit between the model's predictions and actual sales data.")
+    st.write("This section presents the forecasted sales for the next months, along with the accuracy metrics of the model used.")
+
     # Forecast plot
     fig, ax = plt.subplots()
     ax.plot(monthly_sales['order_date'], monthly_sales['sales'], label="Actual Sales", color='blue')
@@ -98,34 +108,12 @@ if st.sidebar.checkbox("Show Sales Forecasting"):
     ax.set_ylabel("Sales")
     ax.set_title("Sales Forecasting")
     ax.legend()
-    st.pyplot(fig)
+    st.write("The green dashed line represents the sales forecast for the future. This plot helps in visualizing how the sales are expected to trend based on historical data.")
 
-    # Calculate forecast errors if user opts for it
-    if st.sidebar.checkbox("Show Forecast Error Distribution"):
-        st.subheader("Forecast Error Distribution")
-        errors = y_pred - monthly_sales['sales'].iloc[test_dates.index]
-        
-        fig, ax = plt.subplots()
-        ax.hist(errors, bins=10, color='purple', edgecolor='black')
-        ax.set_xlabel("Forecast Error")
-        ax.set_ylabel("Frequency")
-        ax.set_title("Forecast Error Distribution")
-        st.pyplot(fig)
-
-# Additional Forecasting Model
-if st.sidebar.checkbox("Compare with Exponential Smoothing"):
-    st.subheader("Exponential Smoothing Forecast")
-    exp_model = ExponentialSmoothing(monthly_sales['sales'], trend="add", seasonal=None, initialization_method="estimated").fit()
-    monthly_sales['exp_forecast'] = exp_model.fittedvalues
-    
-    # Exponential smoothing plot
-    fig, ax = plt.subplots()
-    ax.plot(monthly_sales['order_date'], monthly_sales['sales'], label="Actual Sales", color='blue')
-    ax.plot(monthly_sales['order_date'], monthly_sales['exp_forecast'], label="Exponential Smoothing Forecast", color='orange', linestyle='--')
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Sales")
-    ax.set_title("Exponential Smoothing Forecasting")
-    ax.legend()
+    # Apply improved date formatting for better readability
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %Y'))  # Format as "Month Year"
+    ax.xaxis.set_major_locator(mdates.MonthLocator(interval=3))  # Show every 3rd month
+    plt.xticks(rotation=45)
     st.pyplot(fig)
 
 # Seasonal Analysis
@@ -140,7 +128,30 @@ if st.sidebar.checkbox("Show Seasonal Analysis"):
     ax.set_xlabel("Month")
     ax.set_ylabel("Average Sales")
     ax.set_title("Seasonal Sales Analysis")
+    st.write("This plot illustrates the average sales for each month. It helps in understanding seasonal patterns and identifying peak sales periods, which can be useful for planning and decision-making.")
     st.pyplot(fig)
+
+# Data Visualization and Explanation Feature
+st.sidebar.subheader("Data Visualization and Explanation")
+if st.sidebar.checkbox("Show Data Visualization and Explanation"):
+    st.subheader("Detailed Data Visualization and Explanation")
+    
+    # Explanation of the dataset
+    st.write("### Dataset Overview")
+    st.write("This dataset contains sales data with order dates and sales figures. Each record represents the total sales made on a particular day. The data is aggregated monthly for better analysis and forecasting.")
+    
+    # Description of Monthly Sales Trend
+    st.write("### Monthly Sales Trend")
+    st.write("The Monthly Sales Trend plot shows the trend of sales over time. It helps identify patterns, such as seasonality or trends, and detect any anomalies in the sales data. By analyzing this trend, businesses can understand their sales performance and make informed decisions.")
+    
+    # Description of Forecasting Model
+    st.write("### Sales Forecasting Model")
+    st.write("The Sales Forecasting Model uses linear regression to predict future sales based on historical data. The model is trained on past sales data and evaluated using metrics like Mean Absolute Error (MAE) and Root Mean Squared Error (RMSE). These metrics indicate the accuracy of the model—the lower the values, the better the predictions.")
+    st.write("The forecast plot shows the actual sales, predicted sales for the test data, and future sales forecast. This helps businesses anticipate future sales and plan accordingly.")
+    
+    # Explanation of Seasonal Analysis
+    st.write("### Seasonal Sales Analysis")
+    st.write("The Seasonal Sales Analysis plot illustrates the average sales for each month. This analysis helps identify seasonal patterns in sales, such as higher sales in certain months due to holidays or events. Understanding these patterns can assist in inventory management and marketing strategies.")
 
 # Download Data Option
 st.sidebar.subheader("Download Options")
