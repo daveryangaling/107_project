@@ -240,6 +240,18 @@ elif app_mode == "Data Mining":
             cluster_summary = customer_data.groupby("cluster")[["totalspend", "purchasefrequency", "recency"]].mean()
             st.dataframe(cluster_summary)
 
+            # Display Customers by Cluster
+            st.subheader("Customers in Each Cluster")
+            st.write("This table shows all customers with their respective cluster assignments.")
+            cluster_filter = st.selectbox("Select Cluster to View", ["All"] + list(customer_data["cluster"].unique()))
+            
+            if cluster_filter != "All":
+                filtered_customers = customer_data[customer_data["cluster"] == cluster_filter]
+            else:
+                filtered_customers = customer_data
+
+            st.dataframe(filtered_customers[["customerid", "totalspend", "purchasefrequency", "recency", "cluster"]])
+
             # Cluster Visualization
             st.subheader("Cluster Visualization")
             st.write("This scatter plot visualizes the customer clusters based on selected features. It's useful for visually identifying the differences and similarities among the clusters.")
@@ -256,76 +268,77 @@ elif app_mode == "Data Mining":
             )
             st.plotly_chart(fig_cluster)
 
+
         # Tab 2: Sales Forecasting
-with tabs[1]:
-    st.subheader("Sales Forecasting with Linear Regression")
-    st.write("This section involves predicting future sales based on historical data using linear regression. It helps in planning and setting sales targets.")
+        with tabs[1]:
+            st.subheader("Sales Forecasting with Linear Regression")
+            st.write("This section involves predicting future sales based on historical data using linear regression. It helps in planning and setting sales targets.")
 
-    # Query for Sales Data
-    sales_query = """
-    SELECT fs.order_date AS InvoiceDate, SUM(fs.sales) AS TotalPrice
-    FROM public.fact_sales fs
-    GROUP BY fs.order_date
-    ORDER BY fs.order_date;
-    """
-    sales_data = load_data_from_db(sales_query)
+            # Query for Sales Data
+            sales_query = """
+            SELECT fs.order_date AS InvoiceDate, SUM(fs.sales) AS TotalPrice
+            FROM public.fact_sales fs
+            GROUP BY fs.order_date
+            ORDER BY fs.order_date;
+            """
+            sales_data = load_data_from_db(sales_query)
 
-    # Process sales data for forecasting
-    sales_data.columns = sales_data.columns.str.lower()
-    sales_data["invoicedate"] = pd.to_datetime(sales_data["invoicedate"])
-    monthly_sales = sales_data.groupby(sales_data["invoicedate"].dt.to_period("M"))["totalprice"].sum().reset_index()
-    monthly_sales.columns = ["Month", "Sales"]
-    monthly_sales["MonthIndex"] = range(1, len(monthly_sales) + 1)
+            # Process sales data for forecasting
+            sales_data.columns = sales_data.columns.str.lower()
+            sales_data["invoicedate"] = pd.to_datetime(sales_data["invoicedate"])
+            monthly_sales = sales_data.groupby(sales_data["invoicedate"].dt.to_period("M"))["totalprice"].sum().reset_index()
+            monthly_sales.columns = ["Month", "Sales"]
+            monthly_sales["MonthIndex"] = range(1, len(monthly_sales) + 1)
 
-    # Train/Test Split
-    X = monthly_sales[["MonthIndex"]]
-    y = monthly_sales["Sales"]
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    model = LinearRegression()
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    mse = mean_squared_error(y_test, y_pred)
+            # Train/Test Split
+            X = monthly_sales[["MonthIndex"]]
+            y = monthly_sales["Sales"]
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            model = LinearRegression()
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_test)
+            mse = mean_squared_error(y_test, y_pred)
 
-    st.write(f"Mean Squared Error: {mse:.2f}")
+            st.write(f"Mean Squared Error: {mse:.2f}")
 
-    # Visualization: Actual vs Predicted Sales
-    st.write("This scatter plot shows the actual vs. predicted sales using the linear regression model. It helps to evaluate the accuracy of the model.")
-    fig_actual_pred = go.Figure()
-    fig_actual_pred.add_trace(go.Scatter(x=X_test["MonthIndex"], y=y_test, mode="markers", name="Actual"))
-    fig_actual_pred.add_trace(go.Scatter(x=X_test["MonthIndex"], y=y_pred, mode="lines", name="Predicted"))
-    fig_actual_pred.update_layout(
-        title="Actual vs Predicted Sales",
-        xaxis_title="Month Index",
-        yaxis_title="Sales ($)",
-        legend_title="Legend",
-        template="plotly_white"
-    )
-    st.plotly_chart(fig_actual_pred)
+            # Visualization: Actual vs Predicted Sales
+            st.write("This scatter plot shows the actual vs. predicted sales using the linear regression model. It helps to evaluate the accuracy of the model.")
+            fig_actual_pred = go.Figure()
+            fig_actual_pred.add_trace(go.Scatter(x=X_test["MonthIndex"], y=y_test, mode="markers", name="Actual"))
+            fig_actual_pred.add_trace(go.Scatter(x=X_test["MonthIndex"], y=y_pred, mode="lines", name="Predicted"))
+            fig_actual_pred.update_layout(
+                title="Actual vs Predicted Sales",
+                xaxis_title="Month Index",
+                yaxis_title="Sales ($)",
+                legend_title="Legend",
+                template="plotly_white"
+            )
+            st.plotly_chart(fig_actual_pred)
 
-    # Display the table for Actual vs Predicted Sales
-    actual_pred_df = pd.DataFrame({
-        'Month Index': X_test["MonthIndex"],
-        'Actual Sales ($)': y_test,
-        'Predicted Sales ($)': y_pred
-    })
-    st.write("#### Actual vs Predicted Sales Table")
-    st.dataframe(actual_pred_df)
+            # Display the table for Actual vs Predicted Sales
+            actual_pred_df = pd.DataFrame({
+                'Month Index': X_test["MonthIndex"],
+                'Actual Sales ($)': y_test,
+                'Predicted Sales ($)': y_pred
+            })
+            st.write("#### Actual vs Predicted Sales Table")
+            st.dataframe(actual_pred_df)
 
-    # Visualization: Future Sales Forecast
-    future_months = pd.DataFrame({"MonthIndex": range(len(monthly_sales) + 1, len(monthly_sales) + 13)})
-    future_sales = model.predict(future_months)
+            # Visualization: Future Sales Forecast
+            future_months = pd.DataFrame({"MonthIndex": range(len(monthly_sales) + 1, len(monthly_sales) + 13)})
+            future_sales = model.predict(future_months)
 
-    fig_forecast = go.Figure()
-    fig_forecast.add_trace(go.Scatter(x=monthly_sales["MonthIndex"], y=monthly_sales["Sales"], mode="lines", name="Historical Sales"))
-    fig_forecast.add_trace(go.Scatter(x=future_months["MonthIndex"], y=future_sales, mode="lines", name="Forecasted Sales"))
-    fig_forecast.update_layout(title="Future Sales Forecast", xaxis_title="Month Index", yaxis_title="Sales")
-    st.plotly_chart(fig_forecast)
+            fig_forecast = go.Figure()
+            fig_forecast.add_trace(go.Scatter(x=monthly_sales["MonthIndex"], y=monthly_sales["Sales"], mode="lines", name="Historical Sales"))
+            fig_forecast.add_trace(go.Scatter(x=future_months["MonthIndex"], y=future_sales, mode="lines", name="Forecasted Sales"))
+            fig_forecast.update_layout(title="Future Sales Forecast", xaxis_title="Month Index", yaxis_title="Sales")
+            st.plotly_chart(fig_forecast)
 
-    # Display the table for Future Predicted Sales
-    future_sales_df = pd.DataFrame({
-        'Month Index': future_months["MonthIndex"],
-        'Forecasted Sales ($)': future_sales
-    })
-    st.write("#### Future Predicted Sales Table")
-    st.dataframe(future_sales_df)
+            # Display the table for Future Predicted Sales
+            future_sales_df = pd.DataFrame({
+                'Month Index': future_months["MonthIndex"],
+                'Forecasted Sales ($)': future_sales
+            })
+            st.write("#### Future Predicted Sales Table")
+            st.dataframe(future_sales_df)
 
